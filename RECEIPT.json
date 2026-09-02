@@ -1,0 +1,162 @@
+{
+  "claim_ceiling": "Establishes that the mixed configuration is not behaviorally identical to pure v12 on the non-dereferencing trace, on both Mach-O/clang/libc++ and ELF/gcc/libstdc++. Tests the binary coexistence promised by equal PYBIND11_INTERNALS_VERSION; it is not evidence about arbitrary ODR-safe source mixing. Does NOT establish that pure v12 is free of undefined behavior on that trace -- binding a reference to storage whose lifetime has not begun is a lifetime violation even when nothing is read -- and does not by itself decide bump versus an alternative repair.",
+  "design": "Paired arms. The disputed claim is a comparison, so the pure-v12 baseline is measured on the same trace, host and interpreter as the mixed arm. Two traces differing only in whether the re-entrant cross-DSO load dereferences the still-unconstructed object.",
+  "external_action": "NONE -- nothing posted from this package",
+  "findings": [
+    "The published three-arm cross-DSO matrix in the sibling package could not discriminate 'bump needed' from 'bump not needed': its decisive arm measured that an internals bump partitions the type registry, which is the mechanism, not the need.",
+    "In the non-dereferencing trace, the unbumped mixed configuration reaches std::terminate where pure v12 completes. Reproduced on Mach-O/clang/libc++ and ELF/gcc/libstdc++.",
+    "The first failure in that configuration is NOT fatal: complete_old_style_init raises a catchable RuntimeError because the legacy module published storage into the shared value pointer. The process dies only because ~loader_life_support() then throws a SECOND exception during that unwinding (uncaught_exceptions=1, measured).",
+    "Patching only the destructor removes the fatal behavior: __init__ raises the catchable RuntimeError and the instance is left unconstructed. So this evidence does NOT support the ABI bump; it supports fixing the destructor.",
+    "Two interpretations were retracted while building this: that the throw escaped on the ordinary-return path, and that the non-throwing repair produced a silent failure. Both came from reading a summary label instead of the record; the label now carries the constructor outcome."
+  ],
+  "inputs": {
+    "bumped_v13": {
+      "acquired_as": "../pybind11-pr6157-4455e3f/current-head-14e32ae.tar.gz",
+      "commit": "14e32ae23af529df8d82681c2d3064884b259a3c",
+      "internals_version": 13,
+      "tarball_sha256": "cf180cd58806a32885a1358bda4d501af77b1a6c443cdcb14f29ea3a7aae4e33"
+    },
+    "fix_unbumped": {
+      "acquired_as": "../pybind11-pr6157-4455e3f/exact-head.tar.gz",
+      "commit": "4455e3f439bed9e8dd6a04cb87260f7d7486bb02",
+      "internals_version": 12,
+      "tarball_sha256": "5afbeda15ed9d3866cec66db45ea5dfc5a2a8ef7ad8e2e7b2378825d120a042f"
+    },
+    "fix_unbumped_instrumented": {
+      "acquired_as": "harness/make_instrumented_tree.py applied to the fix tree",
+      "commit": "4455e3f439bed9e8dd6a04cb87260f7d7486bb02 + local instrumentation",
+      "internals_version": 12,
+      "not_upstream": true,
+      "what_it_changes": "prints std::uncaught_exceptions() at the collision check before calling pybind11_fail",
+      "why_it_exists": "a __clang_call_terminate frame shows an exception crossed a non-throwing boundary, but not whether another exception was already propagating. Measured: uncaught_exceptions=1, so the destructor throw is a SECOND throw during unwinding, not an escape on the ordinary-return path."
+    },
+    "fix_unbumped_patched": {
+      "acquired_as": "harness/make_patched_tree.py applied to the fix tree",
+      "commit": "4455e3f439bed9e8dd6a04cb87260f7d7486bb02 + local candidate repair",
+      "internals_version": 12,
+      "not_upstream": true,
+      "what_it_changes": "the storage-collision branch of cleanup_old_style_init_storage reports through PyErr_WriteUnraisable and leaks the reservation instead of calling pybind11_fail out of an implicitly-noexcept destructor",
+      "why_it_exists": "to test whether a non-throwing collision handler alone removes the fatal mixed-version behavior. Measured: it does. __init__ then raises a catchable RuntimeError from complete_old_style_init (\"invalid old-style constructor commit\") and the instance is left unconstructed, which is the correct outcome for a failed __init__."
+    },
+    "legacy_v12": {
+      "acquired_as": "include/ subtree of github.com/pybind/pybind11 at that commit",
+      "commit": "5e9611aacc0bdd2054aa36800055014ebcd8e805",
+      "internals_version": 12,
+      "pin": [
+        "source_repo   https://github.com/pybind/pybind11.git",
+        "commit        5e9611aacc0bdd2054aa36800055014ebcd8e805",
+        "subtree       include/",
+        "tree_sha256   42f540ea13e1aaef558a37a03d3899f61d0a148aca352abccb7d33d924d7cd2b"
+      ]
+    }
+  },
+  "interposition_control": {
+    "check": "nm -gU on each built module",
+    "observed": "each module exports only PyInit_<name> and pybind11's error_already_set deleter; load_value is absent from the dynamic export table, so each module runs its own inline copy"
+  },
+  "question": "Does a legacy-v12 consumer mixed with the unbumped fix behave identically to pure v12, as argued on the PR?",
+  "replication_units": "The meaningful replication is across BUILD CONFIGURATIONS, not run count: 2 object formats and standard libraries (Mach-O/clang/libc++, ELF/gcc/libstdc++), 3 optimization levels, symbol visibility on and off, and GIL enabled and disabled. The 20 runs per cell are reproducibility checks on a deterministic trace, not statistical evidence.",
+  "results": {
+    "matrix-3.14.json": {
+      "addr/bumped_v13": {
+        "load=REJECTED_TypeError/init=returned/get=7": 20
+      },
+      "addr/mixed_instrumented": {
+        "SIGABRT_STORAGE_COLLISION_TERMINATE_uncaught_exceptions=1": 20
+      },
+      "addr/mixed_patched": {
+        "load=ACCEPTED/init=RuntimeError+UNRAISABLE/get=ValueError": 20
+      },
+      "addr/mixed_unbumped": {
+        "SIGABRT_STORAGE_COLLISION_TERMINATE": 20
+      },
+      "addr/pure_fix": {
+        "load=REJECTED_ValueError/init=returned/get=7": 20
+      },
+      "addr/pure_v12": {
+        "load=ACCEPTED/init=returned/get=7": 20
+      },
+      "deref/bumped_v13": {
+        "load=REJECTED_TypeError/init=returned/get=7": 20
+      },
+      "deref/mixed_instrumented": {
+        "SIGSEGV": 20
+      },
+      "deref/mixed_patched": {
+        "SIGSEGV": 20
+      },
+      "deref/mixed_unbumped": {
+        "SIGSEGV": 20
+      },
+      "deref/pure_fix": {
+        "load=REJECTED_ValueError/init=returned/get=7": 20
+      },
+      "deref/pure_v12": {
+        "SIGSEGV": 20
+      }
+    },
+    "matrix-3.14t.json": {
+      "addr/bumped_v13": {
+        "load=REJECTED_TypeError/init=returned/get=7": 20
+      },
+      "addr/mixed_instrumented": {
+        "SIGABRT_STORAGE_COLLISION_TERMINATE_uncaught_exceptions=1": 20
+      },
+      "addr/mixed_patched": {
+        "load=ACCEPTED/init=RuntimeError+UNRAISABLE/get=ValueError": 20
+      },
+      "addr/mixed_unbumped": {
+        "SIGABRT_STORAGE_COLLISION_TERMINATE": 20
+      },
+      "addr/pure_fix": {
+        "load=REJECTED_ValueError/init=returned/get=7": 20
+      },
+      "addr/pure_v12": {
+        "load=ACCEPTED/init=returned/get=7": 20
+      },
+      "deref/bumped_v13": {
+        "load=REJECTED_TypeError/init=returned/get=7": 20
+      },
+      "deref/mixed_instrumented": {
+        "SIGSEGV": 20
+      },
+      "deref/mixed_patched": {
+        "SIGSEGV": 20
+      },
+      "deref/mixed_unbumped": {
+        "SIGSEGV": 20
+      },
+      "deref/pure_fix": {
+        "load=REJECTED_ValueError/init=returned/get=7": 20
+      },
+      "deref/pure_v12": {
+        "SIGSEGV": 20
+      }
+    }
+  },
+  "runs_per_cell": 20,
+  "subject": "pybind/pybind11 PR #6157 -- is the internals v12->v13 bump load-bearing?",
+  "toolchain": {
+    "compile_flags": [
+      "-std=c++17",
+      "-O1",
+      "-g",
+      "-fPIC",
+      "-fvisibility=hidden",
+      "-shared",
+      "-undefined",
+      "dynamic_lookup",
+      "-DMODNAME=<module>"
+    ],
+    "darwin_cxx": "Apple clang version 21.0.0 (clang-2100.1.1.101)",
+    "darwin_stdlib": "libc++ (Apple clang default)",
+    "darwin_uname": "Darwin 25.6.0 arm64",
+    "linux_cxx": "c++ (Debian 14.2.0-19) 14.2.0",
+    "linux_image": "python:3.14-slim + g++ (see harness/Dockerfile.linux)",
+    "linux_python": "Python 3.14.7 (main, Aug 31 2026) [GCC 14.2.0]",
+    "linux_stdlib": "libstdc++.so.6.0.33, glibc 2.41",
+    "linux_uname": "Linux 6.12.76-linuxkit aarch64",
+    "python_3_14": "Python 3.14.6 (main, Jul 18 2026, 17:05:49) [Clang 22.1.3 ]",
+    "python_3_14t": "Python 3.14.0rc1 free-threading build (main, Jul 23 2025, 00:28:25) [Clang 20.1.4 ]"
+  }
+}

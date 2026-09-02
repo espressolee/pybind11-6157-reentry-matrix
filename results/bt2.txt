@@ -1,0 +1,44 @@
+(lldb) target create "<HOME>/.local/bin/python3.14"
+Current executable set to '<HOME>/.local/bin/python3.14' (arm64).
+(lldb) settings set -- target.run-args  "<WORKDIR>/reentry-matrix/probe.py"
+(lldb) settings set target.env-vars PRODUCER=prod_fix CONSUMER=cons_v12 MODE=addr PYTHONPATH=<WORKDIR>/reentry-matrix/build-python3.14
+(lldb) breakpoint set --name abort
+Breakpoint 1: 5 locations.
+(lldb) run
+libc++abi: terminating due to uncaught exception of type std::runtime_error: loader_life_support: old-style constructor storage collision
+Process 8726 launched: '<HOME>/.local/bin/python3.14' (arm64)
+Process 8726 stopped
+* thread #1, queue = 'com.apple.main-thread', stop reason = breakpoint 1.2
+    frame #0: 0x00000001805e98e4 libsystem_c.dylib`abort
+libsystem_c.dylib`abort:
+->  0x1805e98e4 <+0>:  adrp   x8, 434285
+    0x1805e98e8 <+4>:  ldr    x9, [x8, #0xc48]
+    0x1805e98ec <+8>:  cbnz   x9, 0x1805e98fc           ; <+24>
+    0x1805e98f0 <+12>: adrp   x9, 7
+Target 0: (python3.14) stopped.
+(lldb) bt 30
+* thread #1, queue = 'com.apple.main-thread', stop reason = breakpoint 1.2
+  * frame #0: 0x00000001805e98e4 libsystem_c.dylib`abort
+    frame #1: 0x000000018069a72c libc++abi.dylib`__abort_message + 132
+    frame #2: 0x0000000180687570 libc++abi.dylib`demangling_terminate_handler() + 272
+    frame #3: 0x00000001802948a4 libobjc.A.dylib`_objc_terminate() + 172
+    frame #4: 0x000000018069775c libc++abi.dylib`std::__terminate(void (*)()) + 16
+    frame #5: 0x0000000180697710 libc++abi.dylib`std::terminate() + 108
+    frame #6: 0x0000000101220f84 prod_fix.so`__clang_call_terminate + 16
+    frame #7: 0x0000000101231c5c prod_fix.so`pybind11::detail::loader_life_support::~loader_life_support(this=0x000000016fdfc660) at type_caster_base.h:105:13 [opt]
+    frame #8: 0x000000010122aefc prod_fix.so`pybind11::detail::loader_life_support::~loader_life_support(this=0x000000016fdfc660) at type_caster_base.h:102:28 [opt] [inlined]
+    frame #9: 0x000000010122aef4 prod_fix.so`pybind11::cpp_function::dispatcher(self=<unavailable>, args_in_arr=0x000000016fdfc7b0, nargsf=<unavailable>, kwnames_in=0x0000000000000000) at pybind11.h:1258:17 [opt]
+    frame #10: 0x0000000100082ca8 python3.14`_TAIL_CALL_CALL.llvm.8930488965520370820 + 320
+    frame #11: 0x0000000100148530 python3.14`_PyEval_Vector + 780
+    frame #12: 0x000000010015ab18 python3.14`PyEval_EvalCode + 160
+    frame #13: 0x000000010017144c python3.14`run_mod.llvm.13988199767998638184 + 292
+    frame #14: 0x00000001000453c0 python3.14`pyrun_file + 164
+    frame #15: 0x0000000100042018 python3.14`_PyRun_SimpleFileObject + 256
+    frame #16: 0x0000000100041dbc python3.14`_PyRun_AnyFileObject + 80
+    frame #17: 0x0000000100041cb0 python3.14`pymain_run_file_obj + 164
+    frame #18: 0x000000010022d79c python3.14`pymain_run_file + 72
+    frame #19: 0x0000000100229c9c python3.14`Py_RunMain + 1136
+    frame #20: 0x00000001001dc8b0 python3.14`pymain_main.llvm.10321245727715801069 + 464
+    frame #21: 0x00000001001dc6d4 python3.14`main + 36
+    frame #22: 0x00000001803184e4 dyld`start + 6992
+(lldb) quit

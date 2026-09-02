@@ -1,0 +1,255 @@
+{
+  "abiflags": "",
+  "ext_suffix": ".cpython-312-darwin.so",
+  "python": "3.14.6 (main, Jul 18 2026, 17:05:49) [Clang 22.1.3 ]",
+  "results": {
+    "addr/bumped_v13": {
+      "consumer": "cons_v12",
+      "counts": {
+        "REJECTED_TypeError": 20
+      },
+      "mode": "addr",
+      "note": "control: does the bump intercept first",
+      "producer": "prod_v13",
+      "samples": {
+        "REJECTED_TypeError": {
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"consumer\": \"cons_v12\", \"ctor\": \"returned\", \"gil_enabled\": true, \"mode\": \"addr\", \"producer\": \"prod_v13\", \"reentrant_load\": {\"load_error\": \"TypeError: read_addr(): incompatible function arguments. The following argument types are supported:\\n    1. (arg0: Shared) -> int\\n\\nInvoked with: <prod_v13.Shared object at 0x10aaf7470>\"}}"
+        }
+      }
+    },
+    "addr/mixed_unbumped": {
+      "consumer": "cons_v12",
+      "counts": {
+        "SIGABRT_STORAGE_COLLISION_TERMINATE": 20
+      },
+      "mode": "addr",
+      "note": "the disputed configuration",
+      "producer": "prod_fix",
+      "samples": {
+        "SIGABRT_STORAGE_COLLISION_TERMINATE": {
+          "returncode": -6,
+          "stderr": "libc++abi: terminating due to uncaught exception of type std::runtime_error: loader_life_support: old-style constructor storage collision",
+          "stdout": ""
+        }
+      }
+    },
+    "addr/pure_fix": {
+      "consumer": "cons_fix",
+      "counts": {
+        "REJECTED_ValueError": 20
+      },
+      "mode": "addr",
+      "note": "control: fix on both sides",
+      "producer": "prod_fix",
+      "samples": {
+        "REJECTED_ValueError": {
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"consumer\": \"cons_fix\", \"ctor\": \"returned\", \"gil_enabled\": true, \"mode\": \"addr\", \"producer\": \"prod_fix\", \"reentrant_load\": {\"load_error\": \"ValueError: Missing value for wrapped C++ type `Shared`: Python instance is still being constructed.\"}}"
+        }
+      }
+    },
+    "addr/pure_v12": {
+      "consumer": "cons_v12",
+      "counts": {
+        "ACCEPTED_value=4317163408": 1,
+        "ACCEPTED_value=4321097344": 1,
+        "ACCEPTED_value=4323004192": 1,
+        "ACCEPTED_value=4327537424": 1,
+        "ACCEPTED_value=4333073952": 1,
+        "ACCEPTED_value=4353759248": 1,
+        "ACCEPTED_value=4355487536": 1,
+        "ACCEPTED_value=4356441760": 1,
+        "ACCEPTED_value=4361148800": 1,
+        "ACCEPTED_value=4361380320": 1,
+        "ACCEPTED_value=4383328656": 1,
+        "ACCEPTED_value=4389794032": 1,
+        "ACCEPTED_value=4391916208": 1,
+        "ACCEPTED_value=4392573136": 1,
+        "ACCEPTED_value=4393219312": 1,
+        "ACCEPTED_value=4394154352": 1,
+        "ACCEPTED_value=4396299712": 1,
+        "ACCEPTED_value=4396845520": 1,
+        "ACCEPTED_value=4401252912": 1,
+        "ACCEPTED_value=4403903040": 1
+      },
+      "mode": "addr",
+      "note": "baseline: the bug as it ships today",
+      "producer": "prod_v12",
+      "samples": {
+        "ACCEPTED_value=4317163408": {
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"consumer\": \"cons_v12\", \"ctor\": \"returned\", \"gil_enabled\": true, \"mode\": \"addr\", \"producer\": \"prod_v12\", \"reentrant_load\": {\"loaded_value\": 4317163408}}"
+        },
+        "ACCEPTED_value=4321097344": {
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"consumer\": \"cons_v12\", \"ctor\": \"returned\", \"gil_enabled\": true, \"mode\": \"addr\", \"producer\": \"prod_v12\", \"reentrant_load\": {\"loaded_value\": 4321097344}}"
+        },
+        "ACCEPTED_value=4323004192": {
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"consumer\": \"cons_v12\", \"ctor\": \"returned\", \"gil_enabled\": true, \"mode\": \"addr\", \"producer\": \"prod_v12\", \"reentrant_load\": {\"loaded_value\": 4323004192}}"
+        },
+        "ACCEPTED_value=4327537424": {
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"consumer\": \"cons_v12\", \"ctor\": \"returned\", \"gil_enabled\": true, \"mode\": \"addr\", \"producer\": \"prod_v12\", \"reentrant_load\": {\"loaded_value\": 4327537424}}"
+        },
+        "ACCEPTED_value=4333073952": {
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"consumer\": \"cons_v12\", \"ctor\": \"returned\", \"gil_enabled\": true, \"mode\": \"addr\", \"producer\": \"prod_v12\", \"reentrant_load\": {\"loaded_value\": 4333073952}}"
+        },
+        "ACCEPTED_value=4353759248": {
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"consumer\": \"cons_v12\", \"ctor\": \"returned\", \"gil_enabled\": true, \"mode\": \"addr\", \"producer\": \"prod_v12\", \"reentrant_load\": {\"loaded_value\": 4353759248}}"
+        },
+        "ACCEPTED_value=4355487536": {
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"consumer\": \"cons_v12\", \"ctor\": \"returned\", \"gil_enabled\": true, \"mode\": \"addr\", \"producer\": \"prod_v12\", \"reentrant_load\": {\"loaded_value\": 4355487536}}"
+        },
+        "ACCEPTED_value=4356441760": {
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"consumer\": \"cons_v12\", \"ctor\": \"returned\", \"gil_enabled\": true, \"mode\": \"addr\", \"producer\": \"prod_v12\", \"reentrant_load\": {\"loaded_value\": 4356441760}}"
+        },
+        "ACCEPTED_value=4361148800": {
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"consumer\": \"cons_v12\", \"ctor\": \"returned\", \"gil_enabled\": true, \"mode\": \"addr\", \"producer\": \"prod_v12\", \"reentrant_load\": {\"loaded_value\": 4361148800}}"
+        },
+        "ACCEPTED_value=4361380320": {
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"consumer\": \"cons_v12\", \"ctor\": \"returned\", \"gil_enabled\": true, \"mode\": \"addr\", \"producer\": \"prod_v12\", \"reentrant_load\": {\"loaded_value\": 4361380320}}"
+        },
+        "ACCEPTED_value=4383328656": {
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"consumer\": \"cons_v12\", \"ctor\": \"returned\", \"gil_enabled\": true, \"mode\": \"addr\", \"producer\": \"prod_v12\", \"reentrant_load\": {\"loaded_value\": 4383328656}}"
+        },
+        "ACCEPTED_value=4389794032": {
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"consumer\": \"cons_v12\", \"ctor\": \"returned\", \"gil_enabled\": true, \"mode\": \"addr\", \"producer\": \"prod_v12\", \"reentrant_load\": {\"loaded_value\": 4389794032}}"
+        },
+        "ACCEPTED_value=4391916208": {
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"consumer\": \"cons_v12\", \"ctor\": \"returned\", \"gil_enabled\": true, \"mode\": \"addr\", \"producer\": \"prod_v12\", \"reentrant_load\": {\"loaded_value\": 4391916208}}"
+        },
+        "ACCEPTED_value=4392573136": {
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"consumer\": \"cons_v12\", \"ctor\": \"returned\", \"gil_enabled\": true, \"mode\": \"addr\", \"producer\": \"prod_v12\", \"reentrant_load\": {\"loaded_value\": 4392573136}}"
+        },
+        "ACCEPTED_value=4393219312": {
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"consumer\": \"cons_v12\", \"ctor\": \"returned\", \"gil_enabled\": true, \"mode\": \"addr\", \"producer\": \"prod_v12\", \"reentrant_load\": {\"loaded_value\": 4393219312}}"
+        },
+        "ACCEPTED_value=4394154352": {
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"consumer\": \"cons_v12\", \"ctor\": \"returned\", \"gil_enabled\": true, \"mode\": \"addr\", \"producer\": \"prod_v12\", \"reentrant_load\": {\"loaded_value\": 4394154352}}"
+        },
+        "ACCEPTED_value=4396299712": {
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"consumer\": \"cons_v12\", \"ctor\": \"returned\", \"gil_enabled\": true, \"mode\": \"addr\", \"producer\": \"prod_v12\", \"reentrant_load\": {\"loaded_value\": 4396299712}}"
+        },
+        "ACCEPTED_value=4396845520": {
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"consumer\": \"cons_v12\", \"ctor\": \"returned\", \"gil_enabled\": true, \"mode\": \"addr\", \"producer\": \"prod_v12\", \"reentrant_load\": {\"loaded_value\": 4396845520}}"
+        },
+        "ACCEPTED_value=4401252912": {
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"consumer\": \"cons_v12\", \"ctor\": \"returned\", \"gil_enabled\": true, \"mode\": \"addr\", \"producer\": \"prod_v12\", \"reentrant_load\": {\"loaded_value\": 4401252912}}"
+        },
+        "ACCEPTED_value=4403903040": {
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"consumer\": \"cons_v12\", \"ctor\": \"returned\", \"gil_enabled\": true, \"mode\": \"addr\", \"producer\": \"prod_v12\", \"reentrant_load\": {\"loaded_value\": 4403903040}}"
+        }
+      }
+    },
+    "deref/bumped_v13": {
+      "consumer": "cons_v12",
+      "counts": {
+        "REJECTED_TypeError": 20
+      },
+      "mode": "deref",
+      "note": "control: does the bump intercept first",
+      "producer": "prod_v13",
+      "samples": {
+        "REJECTED_TypeError": {
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"consumer\": \"cons_v12\", \"ctor\": \"returned\", \"final_get\": 7, \"gil_enabled\": true, \"mode\": \"deref\", \"producer\": \"prod_v13\", \"reentrant_load\": {\"load_error\": \"TypeError: read(): incompatible function arguments. The following argument types are supported:\\n    1. (arg0: Shared) -> int\\n\\nInvoked with: <prod_v13.Shared object at 0x1037d9cf0>\"}}"
+        }
+      }
+    },
+    "deref/mixed_unbumped": {
+      "consumer": "cons_v12",
+      "counts": {
+        "SIGSEGV": 20
+      },
+      "mode": "deref",
+      "note": "the disputed configuration",
+      "producer": "prod_fix",
+      "samples": {
+        "SIGSEGV": {
+          "returncode": -11,
+          "stderr": "",
+          "stdout": ""
+        }
+      }
+    },
+    "deref/pure_fix": {
+      "consumer": "cons_fix",
+      "counts": {
+        "REJECTED_ValueError": 20
+      },
+      "mode": "deref",
+      "note": "control: fix on both sides",
+      "producer": "prod_fix",
+      "samples": {
+        "REJECTED_ValueError": {
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"consumer\": \"cons_fix\", \"ctor\": \"returned\", \"final_get\": 7, \"gil_enabled\": true, \"mode\": \"deref\", \"producer\": \"prod_fix\", \"reentrant_load\": {\"load_error\": \"ValueError: Missing value for wrapped C++ type `Shared`: Python instance is still being constructed.\"}}"
+        }
+      }
+    },
+    "deref/pure_v12": {
+      "consumer": "cons_v12",
+      "counts": {
+        "SIGSEGV": 20
+      },
+      "mode": "deref",
+      "note": "baseline: the bug as it ships today",
+      "producer": "prod_v12",
+      "samples": {
+        "SIGSEGV": {
+          "returncode": -11,
+          "stderr": "",
+          "stdout": ""
+        }
+      }
+    }
+  },
+  "runs_per_arm": 20,
+  "trees": {
+    "fix": "<WORKDIR>/head4455e3f/pybind-pybind11-4455e3f",
+    "v12": "<WORKDIR>/pybind11-v12-5e9611aa",
+    "v13": "<WORKDIR>/head14e32ae/pybind-pybind11-14e32ae"
+  }
+}

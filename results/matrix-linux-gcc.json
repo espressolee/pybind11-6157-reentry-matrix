@@ -1,0 +1,207 @@
+{
+  "abiflags": "",
+  "ext_suffix": ".cpython-314-aarch64-linux-gnu.so",
+  "python": "3.14.7 (main, Aug 31 2026, 23:42:40) [GCC 14.2.0]",
+  "results": {
+    "addr/bumped_v13": {
+      "consumer": "cons_v12",
+      "counts": {
+        "load=REJECTED_TypeError/init=returned/get=7": 20
+      },
+      "mode": "addr",
+      "note": "control: does the bump intercept first",
+      "producer": "prod_v13",
+      "samples": {
+        "load=REJECTED_TypeError/init=returned/get=7": {
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"consumer\": \"cons_v12\", \"ctor\": \"returned\", \"gil_enabled\": true, \"mode\": \"addr\", \"producer\": \"prod_v13\", \"reentrant_load\": {\"load_error\": \"TypeError: register_handle(): incompatible function arguments. The following argument types are supported:\\n    1. (arg0: Shared) -> int\\n\\nInvoked with: <prod_v13.Shared object at 0xffffbdf30830>\"}}\n{\"post_use\": {\"get\": 7}}"
+        }
+      }
+    },
+    "addr/mixed_instrumented": {
+      "consumer": "cons_v12",
+      "counts": {
+        "SIGABRT_STORAGE_COLLISION_TERMINATE_uncaught_exceptions=1": 20
+      },
+      "mode": "addr",
+      "note": "was an exception in flight when the destructor ran?",
+      "producer": "prod_fixinstr",
+      "samples": {
+        "SIGABRT_STORAGE_COLLISION_TERMINATE_uncaught_exceptions=1": {
+          "returncode": -6,
+          "stderr": "PB11_PROBE uncaught_exceptions=1\nterminate called after throwing an instance of 'std::runtime_error'\n  what():  loader_life_support: old-style constructor storage collision",
+          "stdout": ""
+        }
+      }
+    },
+    "addr/mixed_patched": {
+      "consumer": "cons_v12",
+      "counts": {
+        "load=ACCEPTED/init=RuntimeError+UNRAISABLE/get=ValueError": 20
+      },
+      "mode": "addr",
+      "note": "does a non-throwing collision handler restore compatibility?",
+      "producer": "prod_fixpatched",
+      "samples": {
+        "load=ACCEPTED/init=RuntimeError+UNRAISABLE/get=ValueError": {
+          "returncode": 0,
+          "stderr": "Traceback (most recent call last):\n  File \"/work/reentry-matrix/probe.py\", line 54, in <module>\n    obj.__init__(Reenter())\nRuntimeError: loader_life_support: old-style constructor storage collision; reserved storage leaked",
+          "stdout": "{\"consumer\": \"cons_v12\", \"ctor\": \"RuntimeError: loader_life_support: invalid old-style constructor commit\", \"gil_enabled\": true, \"mode\": \"addr\", \"producer\": \"prod_fixpatched\", \"reentrant_load\": {\"loaded_value\": 1}}\n{\"post_use\": {\"get\": \"ValueError: Missing value for wrapped C++ type `Shared`: Python instance is uninitialized: the C++ object was never constructed (`__init__()` was bypassed, e.g. by calling `__new__()` directly).\"}}"
+        }
+      }
+    },
+    "addr/mixed_unbumped": {
+      "consumer": "cons_v12",
+      "counts": {
+        "SIGABRT_STORAGE_COLLISION_TERMINATE": 20
+      },
+      "mode": "addr",
+      "note": "the disputed configuration",
+      "producer": "prod_fix",
+      "samples": {
+        "SIGABRT_STORAGE_COLLISION_TERMINATE": {
+          "returncode": -6,
+          "stderr": "terminate called after throwing an instance of 'std::runtime_error'\n  what():  loader_life_support: old-style constructor storage collision",
+          "stdout": ""
+        }
+      }
+    },
+    "addr/pure_fix": {
+      "consumer": "cons_fix",
+      "counts": {
+        "load=REJECTED_ValueError/init=returned/get=7": 20
+      },
+      "mode": "addr",
+      "note": "control: fix on both sides",
+      "producer": "prod_fix",
+      "samples": {
+        "load=REJECTED_ValueError/init=returned/get=7": {
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"consumer\": \"cons_fix\", \"ctor\": \"returned\", \"gil_enabled\": true, \"mode\": \"addr\", \"producer\": \"prod_fix\", \"reentrant_load\": {\"load_error\": \"ValueError: Missing value for wrapped C++ type `Shared`: Python instance is still being constructed.\"}}\n{\"post_use\": {\"get\": 7}}"
+        }
+      }
+    },
+    "addr/pure_v12": {
+      "consumer": "cons_v12",
+      "counts": {
+        "load=ACCEPTED/init=returned/get=7": 20
+      },
+      "mode": "addr",
+      "note": "baseline: the bug as it ships today",
+      "producer": "prod_v12",
+      "samples": {
+        "load=ACCEPTED/init=returned/get=7": {
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"consumer\": \"cons_v12\", \"ctor\": \"returned\", \"gil_enabled\": true, \"mode\": \"addr\", \"producer\": \"prod_v12\", \"reentrant_load\": {\"loaded_value\": 1}}\n{\"post_use\": {\"get\": 7}}"
+        }
+      }
+    },
+    "deref/bumped_v13": {
+      "consumer": "cons_v12",
+      "counts": {
+        "load=REJECTED_TypeError/init=returned/get=7": 20
+      },
+      "mode": "deref",
+      "note": "control: does the bump intercept first",
+      "producer": "prod_v13",
+      "samples": {
+        "load=REJECTED_TypeError/init=returned/get=7": {
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"consumer\": \"cons_v12\", \"ctor\": \"returned\", \"gil_enabled\": true, \"mode\": \"deref\", \"producer\": \"prod_v13\", \"reentrant_load\": {\"load_error\": \"TypeError: read(): incompatible function arguments. The following argument types are supported:\\n    1. (arg0: Shared) -> int\\n\\nInvoked with: <prod_v13.Shared object at 0xffff84190830>\"}}\n{\"post_use\": {\"get\": 7}}"
+        }
+      }
+    },
+    "deref/mixed_instrumented": {
+      "consumer": "cons_v12",
+      "counts": {
+        "SIGSEGV": 20
+      },
+      "mode": "deref",
+      "note": "was an exception in flight when the destructor ran?",
+      "producer": "prod_fixinstr",
+      "samples": {
+        "SIGSEGV": {
+          "returncode": -11,
+          "stderr": "",
+          "stdout": ""
+        }
+      }
+    },
+    "deref/mixed_patched": {
+      "consumer": "cons_v12",
+      "counts": {
+        "SIGSEGV": 20
+      },
+      "mode": "deref",
+      "note": "does a non-throwing collision handler restore compatibility?",
+      "producer": "prod_fixpatched",
+      "samples": {
+        "SIGSEGV": {
+          "returncode": -11,
+          "stderr": "",
+          "stdout": ""
+        }
+      }
+    },
+    "deref/mixed_unbumped": {
+      "consumer": "cons_v12",
+      "counts": {
+        "SIGSEGV": 20
+      },
+      "mode": "deref",
+      "note": "the disputed configuration",
+      "producer": "prod_fix",
+      "samples": {
+        "SIGSEGV": {
+          "returncode": -11,
+          "stderr": "",
+          "stdout": ""
+        }
+      }
+    },
+    "deref/pure_fix": {
+      "consumer": "cons_fix",
+      "counts": {
+        "load=REJECTED_ValueError/init=returned/get=7": 20
+      },
+      "mode": "deref",
+      "note": "control: fix on both sides",
+      "producer": "prod_fix",
+      "samples": {
+        "load=REJECTED_ValueError/init=returned/get=7": {
+          "returncode": 0,
+          "stderr": "",
+          "stdout": "{\"consumer\": \"cons_fix\", \"ctor\": \"returned\", \"gil_enabled\": true, \"mode\": \"deref\", \"producer\": \"prod_fix\", \"reentrant_load\": {\"load_error\": \"ValueError: Missing value for wrapped C++ type `Shared`: Python instance is still being constructed.\"}}\n{\"post_use\": {\"get\": 7}}"
+        }
+      }
+    },
+    "deref/pure_v12": {
+      "consumer": "cons_v12",
+      "counts": {
+        "SIGSEGV": 20
+      },
+      "mode": "deref",
+      "note": "baseline: the bug as it ships today",
+      "producer": "prod_v12",
+      "samples": {
+        "SIGSEGV": {
+          "returncode": -11,
+          "stderr": "",
+          "stdout": ""
+        }
+      }
+    }
+  },
+  "runs_per_arm": 20,
+  "trees": {
+    "fix": "/work/head4455e3f/pybind-pybind11-4455e3f",
+    "fixinstr": "/work/head4455e3f-instr/pybind-pybind11-4455e3f-instr",
+    "fixpatched": "/work/head4455e3f-patched/pybind-pybind11-4455e3f-patched",
+    "v12": "/work/pybind11-v12-5e9611aa",
+    "v13": "/work/head14e32ae/pybind-pybind11-14e32ae"
+  }
+}

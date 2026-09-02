@@ -1,0 +1,10 @@
+# Linux/ELF/gcc/libstdc++ control for the pybind11 #6157 re-entry matrix.
+# The macOS run establishes the effect on Mach-O/clang/libc++; the disputed claim
+# is about ABI coexistence, so the platform axis has to be measured, not assumed.
+FROM python:3.14-slim
+
+RUN apt-get update -qq \
+    && apt-get install -y -qq --no-install-recommends g++ gdb \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /work/reentry-matrix
