@@ -19,15 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
----
-
-This licence covers the harness and documentation in this repository.
-
-It does NOT cover `third_party/pybind11/`, which is redistributed under
-pybind11's own BSD-3-Clause licence — see `third_party/pybind11/LICENSE` and
-`NOTICE.md`.
-
-The measured results under `results/`, `results-23f2d0a7/` and
-`results-89a5f72e/` are records of what particular runs produced. Re-running the
-harness makes new bytes, not these; if you cite the numbers, cite the run.

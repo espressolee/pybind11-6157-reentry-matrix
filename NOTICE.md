@@ -1,4 +1,16 @@
-# Third-party notice
+# Licence and third-party notice
+
+## Scope of `LICENSE`
+
+The MIT licence in `LICENSE` covers the harness and documentation in this
+repository. It does **not** cover `third_party/pybind11/`, which is
+redistributed under pybind11's own BSD-3-Clause licence — see below.
+
+The measured records under `results/`, `results-23f2d0a7/` and
+`results-89a5f72e/` are what particular runs produced. Re-running the harness
+makes new bytes, not these; if you cite the numbers, cite the run.
+
+## Third-party notice
 
 This repository is a test harness for a question about
 [pybind11](https://github.com/pybind/pybind11), which is distributed under the
