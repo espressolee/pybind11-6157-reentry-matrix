@@ -1,8 +1,7 @@
 # Re-running this matrix
 
-Everything is pinned. Two of the three pybind11 trees ship as tarballs in the
-sibling package `../pybind11-pr6157-4455e3f/`; the third is an `include/` subtree
-of a public commit, pinned by digest below.
+Everything is pinned. All three pybind11 trees are `include/` subtrees of public
+commits in `pybind/pybind11`, so nothing outside this repository is needed.
 
 ```
 legacy v12    5e9611aacc0bdd2054aa36800055014ebcd8e805   internals 12
@@ -18,11 +17,26 @@ tree_sha256   42f540ea13e1aaef558a37a03d3899f61d0a148aca352abccb7d33d924d7cd2b
 
 ## Steps
 
-1. Extract both sibling tarballs, and materialize the legacy-v12 `include/`
-   subtree (`harness/pin_v12_headers.py` does this from a clean checkout and
-   refuses a dirty or wrong-commit tree).
-2. Point `TREES` in `harness/build_and_run.py` at the three trees.
+1. `python3 harness/bootstrap_trees.py --out trees`
+
+   Downloads each pinned commit from GitHub, keeps `include/`, and verifies
+   **every file's git blob sha1** against the tree listing GitHub reports for
+   that same commit before writing it. For `v12` it also recomputes the
+   `tree_sha256` above and checks it.
+
+2. Point `TREES` in `harness/build_and_run.py` at `trees/v12`,
+   `trees/fix-unbumped`, `trees/bumped-v13`.
 3. `python3 harness/build_and_run.py --python <interpreter> --runs 20 --output <out.json>`
+
+> **Corrected 2026-09-04.** Step 1 previously read "extract both sibling tarballs
+> from `../pybind11-pr6157-4455e3f/`". That package was never published, so the
+> first step of this file could not be performed by anyone but its author —
+> the repository claimed to be re-runnable and was not. `bootstrap_trees.py`
+> replaces it and needs no private input.
+>
+> `harness/pin_v12_headers.py` is kept: it is what produced the `tree_sha256`
+> pin above from a clean local checkout, and `bootstrap_trees.py` reproduces
+> its digest recipe exactly so the two agree.
 
 The script builds five modules -- producer against each of the three trees,
 consumer against the two internals-12 trees -- then runs four arms in two probe

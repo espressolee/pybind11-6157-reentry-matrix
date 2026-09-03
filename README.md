@@ -21,12 +21,12 @@ that difference decides the answer.
 
 | path | what |
 | --- | --- |
+| `harness/bootstrap_trees.py` | fetches the three pinned pybind11 trees from GitHub and verifies every file's git blob sha — run this first |
 | `harness/build_and_run.py` | entry point: builds the module variants, runs every arm in fresh processes |
 | `harness/producer.cpp`, `consumer.cpp`, `shared.hpp`, `probe.py` | the fixture |
 | `harness/make_*_tree.py` | patched and instrumented variants of the library, used as extra arms |
 | `harness/Dockerfile.linux` | the ELF/gcc/libstdc++ control |
 | `results/` | raw measured output, one file per toolchain plus the sensitivity sweep |
-| `proposed/` | a suggested change and the comment it accompanies |
 | `RECEIPT.json` | inputs, toolchains, findings, and the claim ceiling |
 | `BUILD.md` | how to re-run it |
 
