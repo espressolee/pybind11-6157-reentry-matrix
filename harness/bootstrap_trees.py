@@ -28,7 +28,8 @@ Usage
     python3 harness/bootstrap_trees.py --out trees
     python3 harness/bootstrap_trees.py --out trees --only v12
 
-Needs only the standard library plus `gh` (already required by the other harness scripts).
+Needs only the standard library and network access to GitHub's public API. Set
+`GITHUB_TOKEN` optionally when the anonymous API rate limit is too small.
 """
 from __future__ import annotations
 
@@ -36,11 +37,13 @@ import argparse
 import hashlib
 import io
 import json
+import os
 import pathlib
 import shutil
-import subprocess
 import sys
 import tarfile
+import urllib.error
+import urllib.request
 
 # Pinned commits. Same values as BUILD.md; changing one here changes what is measured.
 TREES = {
@@ -64,11 +67,22 @@ REPO = "pybind/pybind11"
 SUBTREE = "include/"
 
 
-def gh_bytes(*args: str) -> bytes:
-    r = subprocess.run(["gh", "api", *args], capture_output=True)
-    if r.returncode != 0:
-        raise SystemExit(f"gh api {' '.join(args)} failed:\n{r.stderr.decode()[:400]}")
-    return r.stdout
+def github_bytes(endpoint: str) -> bytes:
+    url = f"https://api.github.com/{endpoint.lstrip('/')}"
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "User-Agent": "pybind11-6157-reentry-matrix",
+        "X-GitHub-Api-Version": "2022-11-28",
+    }
+    token = os.environ.get("GITHUB_TOKEN")
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    request = urllib.request.Request(url, headers=headers)
+    try:
+        with urllib.request.urlopen(request, timeout=90) as response:
+            return response.read()
+    except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError) as exc:
+        raise SystemExit(f"GitHub request failed for {url}: {exc}") from exc
 
 
 def blob_sha1(data: bytes) -> str:
@@ -77,7 +91,7 @@ def blob_sha1(data: bytes) -> str:
 
 def github_blob_shas(commit: str) -> dict[str, str]:
     """path -> git blob sha, for every file under include/ at this commit."""
-    out = gh_bytes(f"repos/{REPO}/git/trees/{commit}?recursive=1")
+    out = github_bytes(f"repos/{REPO}/git/trees/{commit}?recursive=1")
     tree = json.loads(out)
     if tree.get("truncated"):
         raise SystemExit("GitHub truncated the tree listing; cannot verify completely")
@@ -119,7 +133,7 @@ def fetch(name: str, spec: dict, out_root: pathlib.Path) -> pathlib.Path:
     print(f"    {len(want)} files under {SUBTREE}")
 
     print("  downloading archive …")
-    raw = gh_bytes(f"repos/{REPO}/tarball/{commit}")
+    raw = github_bytes(f"repos/{REPO}/tarball/{commit}")
     print(f"    {len(raw):,} bytes")
 
     n = 0
@@ -153,10 +167,9 @@ def fetch(name: str, spec: dict, out_root: pathlib.Path) -> pathlib.Path:
     pin = spec.get("tree_sha256")
     if pin:
         if digest != pin:
-            # Not necessarily corruption: BUILD.md's pin may use a different digest recipe.
-            print(f"  ! subtree sha256 {digest[:16]}… != BUILD.md pin {pin[:16]}…")
-            print("    blob-level verification above still passed, so the *content* is the")
-            print("    commit's content. Reconcile the digest recipe before citing this pin.")
+            raise SystemExit(
+                f"  ✗ subtree sha256 {digest} != recorded pin {pin}"
+            )
         else:
             print(f"  ✓ subtree sha256 matches BUILD.md pin: {digest[:16]}…")
     else:
@@ -181,8 +194,8 @@ def main() -> int:
     print("\n=== done ===")
     for name, path in made.items():
         print(f"  {name:<14} {path}")
-    print("\nNext: point TREES in harness/build_and_run.py at these, then")
-    print("  python3 harness/build_and_run.py --python <interpreter> --runs 20 "
+    print("\nNext:")
+    print("  python3 harness/run_clean_clone.py --python <interpreter> --runs 20 "
           "--output out.json")
     return 0
 

@@ -17,6 +17,61 @@ tree_sha256   42f540ea13e1aaef558a37a03d3899f61d0a148aca352abccb7d33d924d7cd2b
 
 ## Steps
 
+Prerequisites: Python 3, a C++17 compiler, the target Python interpreter and
+its development headers, and network access to GitHub's public API. A
+`GITHUB_TOKEN` is optional and is used only to raise the API rate limit.
+
+## Supported and measured scope
+
+The build harness currently supports macOS and Linux and rejects other
+platforms before acquisition or compilation. Windows is not supported: the
+fixture and interposition checks currently use POSIX shared-library behavior.
+
+This clean-clone route has been measured on:
+
+- macOS arm64 with CPython 3.14.6, GIL enabled;
+- macOS arm64 with CPython 3.14.6t, GIL disabled;
+- Linux arm64 with CPython 3.14.7 in `python:3.14-slim`.
+
+Other operating systems, architectures, and Python versions are unmeasured,
+not implied failures.
+
+From a clean clone, run one command:
+
+```sh
+python3 harness/run_clean_clone.py \
+  --python /path/to/python \
+  --runs 20 \
+  --output out.json
+```
+
+For a free-threaded run, make the runtime state an enforced input rather than
+an assumption:
+
+```sh
+PYTHON_GIL=0 python3 harness/run_clean_clone.py \
+  --python /path/to/python3.14t \
+  --expect-gil disabled \
+  --runs 20 \
+  --output out-3.14t.json
+```
+
+The runner performs the complete sequence:
+
+1. downloads the three exact upstream trees;
+2. verifies every downloaded file against its Git blob ID and checks the
+   recorded v12 subtree digest;
+3. derives the patched and instrumented trees from the exact unbumped tree;
+4. builds all seven extension modules;
+5. runs six arms in both probe modes, each execution in a fresh process;
+6. requires a non-empty JSON result.
+
+All generated trees and build products use a temporary directory by default.
+Use `--keep-work` to retain an automatically allocated directory, or
+`--work-dir <path>` to choose one explicitly.
+
+### Manual stages, for debugging
+
 1. `python3 harness/bootstrap_trees.py --out trees`
 
    Downloads each pinned commit from GitHub, keeps `include/`, and verifies
@@ -24,9 +79,9 @@ tree_sha256   42f540ea13e1aaef558a37a03d3899f61d0a148aca352abccb7d33d924d7cd2b
    that same commit before writing it. For `v12` it also recomputes the
    `tree_sha256` above and checks it.
 
-2. Point `TREES` in `harness/build_and_run.py` at `trees/v12`,
-   `trees/fix-unbumped`, `trees/bumped-v13`.
-3. `python3 harness/build_and_run.py --python <interpreter> --runs 20 --output <out.json>`
+2. `python3 harness/make_patched_tree.py`
+3. `python3 harness/make_instrumented_tree.py`
+4. `python3 harness/build_and_run.py --trees-root trees --python <interpreter> --runs 20 --output <out.json>`
 
 > **Corrected 2026-09-04.** Step 1 previously read "extract both sibling tarballs
 > from `../pybind11-pr6157-4455e3f/`". That package was never published, so the
@@ -38,9 +93,8 @@ tree_sha256   42f540ea13e1aaef558a37a03d3899f61d0a148aca352abccb7d33d924d7cd2b
 > pin above from a clean local checkout, and `bootstrap_trees.py` reproduces
 > its digest recipe exactly so the two agree.
 
-The script builds five modules -- producer against each of the three trees,
-consumer against the two internals-12 trees -- then runs four arms in two probe
-modes, each in a fresh process.
+The script builds seven modules -- five producer variants and two consumer
+variants -- then runs six arms in two probe modes, each in a fresh process.
 
 ## Compile line
 
@@ -58,8 +112,10 @@ the modules can interpose on each other and the mixed arm is meaningless.
 
 ```
 docker build -f harness/Dockerfile.linux -t pb11-reentry:linux harness/
-docker run --rm -v <scratch>:/work pb11-reentry:linux \
-  python3 /work/reentry-matrix/build_and_run.py --runs 20 --tag linux --output <out.json>
+docker run --rm -v /absolute/path/to/clone:/work/reentry-matrix pb11-reentry:linux \
+  python3 /work/reentry-matrix/harness/run_clean_clone.py \
+    --python python3 --expect-gil enabled --runs 20 --tag linux \
+    --output /work/reentry-matrix/out-linux.json
 ```
 
 The link line drops `-undefined dynamic_lookup` on ELF; `build_and_run.py` keys that
@@ -85,5 +141,5 @@ Machine-specific paths were replaced with `<HOME>`, `<PROJECTS>`, `<WORKDIR>`,
 
 - `harness/pin_v12_headers.py` — point `SRC` at your own pybind11 checkout
 
-`harness/build_and_run.py` is the entry point and uses only paths relative to
-itself, so it is unchanged and runs as-is once the trees are in place.
+`harness/run_clean_clone.py` is the public entry point. It does not require
+editing a Python constant or reconstructing the historical directory layout.

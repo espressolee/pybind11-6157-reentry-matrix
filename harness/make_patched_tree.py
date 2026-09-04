@@ -16,12 +16,13 @@ restores compatibility. If the process survives `__init__` but the instance is
 left pointing at the other allocation, it does not.
 """
 
+import argparse
 import pathlib
 import shutil
 
 SCRATCH = pathlib.Path(__file__).resolve().parent.parent
-SRC = SCRATCH / "head4455e3f" / "pybind-pybind11-4455e3f"
-DST = SCRATCH / "head4455e3f-patched" / "pybind-pybind11-4455e3f-patched"
+DEFAULT_SRC = SCRATCH / "trees" / "fix-unbumped"
+DEFAULT_DST = SCRATCH / "trees" / "fix-patched"
 
 BEFORE = """        if (v_h.value_ptr() != nullptr) {
             pybind11_fail("loader_life_support: old-style constructor storage collision");
@@ -48,16 +49,37 @@ AFTER = """        if (v_h.value_ptr() != nullptr) {
             return;
         }"""
 
-if DST.exists():
-    shutil.rmtree(DST)
-DST.parent.mkdir(parents=True, exist_ok=True)
-shutil.copytree(SRC, DST)
+def make_patched_tree(src: pathlib.Path, dst: pathlib.Path) -> pathlib.Path:
+    src = src.resolve()
+    dst = dst.resolve()
+    if src == dst or src in dst.parents or dst in src.parents:
+        raise SystemExit("source and destination must be separate sibling trees")
+    source_header = src / "include" / "pybind11" / "detail" / "type_caster_base.h"
+    if not source_header.is_file():
+        raise SystemExit(f"missing source header: {source_header}")
 
-target = DST / "include" / "pybind11" / "detail" / "type_caster_base.h"
-text = target.read_text(encoding="utf-8")
-if BEFORE not in text:
-    raise SystemExit("anchor not found; the tree is not what this patch expects")
-if text.count(BEFORE) != 1:
-    raise SystemExit("anchor is not unique")
-target.write_text(text.replace(BEFORE, AFTER), encoding="utf-8")
-print(f"patched {target}")
+    text = source_header.read_text(encoding="utf-8")
+    if text.count(BEFORE) != 1:
+        raise SystemExit("patch anchor missing or not unique")
+
+    if dst.exists():
+        shutil.rmtree(dst)
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(src, dst)
+    target = dst / "include" / "pybind11" / "detail" / "type_caster_base.h"
+    target.write_text(text.replace(BEFORE, AFTER), encoding="utf-8")
+    print(f"patched {target}")
+    return dst
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    parser.add_argument("--src", type=pathlib.Path, default=DEFAULT_SRC)
+    parser.add_argument("--dst", type=pathlib.Path, default=DEFAULT_DST)
+    args = parser.parse_args()
+    make_patched_tree(args.src, args.dst)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

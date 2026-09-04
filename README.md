@@ -17,14 +17,34 @@ producer's registration through the shared internals — which is the boundary
 Two traces differ only in whether the re-entrant load touches the object, and
 that difference decides the answer.
 
+## Quick start from a clean clone
+
+```sh
+python3 harness/run_clean_clone.py \
+  --python /path/to/python \
+  --runs 20 \
+  --output out.json
+```
+
+This fetches and verifies the three pinned upstream trees, creates the two
+derived trees, builds the complete matrix, and writes the raw JSON result. It
+uses only the Python standard library for acquisition; see `BUILD.md` for
+compiler, network, Docker, retained-work, manual-stage, and fail-closed GIL-state
+details. Free-threaded runs should pass `--expect-gil disabled`.
+
+Current platform scope is macOS and Linux. Windows and other platforms are
+explicitly unsupported rather than inferred from a failed compiler command.
+
 ## Layout
 
 | path | what |
 | --- | --- |
-| `harness/bootstrap_trees.py` | fetches the three pinned pybind11 trees from GitHub and verifies every file's git blob sha — run this first |
-| `harness/build_and_run.py` | entry point: builds the module variants, runs every arm in fresh processes |
+| `harness/run_clean_clone.py` | public one-command entry point: fetch, derive, build, run, and emit JSON |
+| `harness/bootstrap_trees.py` | fetches the three pinned pybind11 trees from GitHub and verifies every file's Git blob ID |
+| `harness/build_and_run.py` | lower-level entry point: builds module variants and runs every arm in fresh processes |
 | `harness/producer.cpp`, `consumer.cpp`, `shared.hpp`, `probe.py` | the fixture |
 | `harness/make_*_tree.py` | patched and instrumented variants of the library, used as extra arms |
+| `harness/test_clean_clone_contract.py` | path, derived-tree, anchor, and corrupt-archive negative fixtures |
 | `harness/Dockerfile.linux` | the ELF/gcc/libstdc++ control |
 | `results/` | raw measured output, one file per toolchain plus the sensitivity sweep |
 | `RECEIPT.json` | inputs, toolchains, findings, and the claim ceiling |

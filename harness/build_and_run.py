@@ -16,20 +16,61 @@ import pathlib
 import re
 import subprocess
 import sys
-import sysconfig
+
+from bootstrap_trees import TREES as PINNED_TREES
+from bootstrap_trees import subtree_sha256
 
 HERE = pathlib.Path(__file__).resolve().parent
 SCRATCH = HERE.parent
 
-TREES = {
-    "v12": SCRATCH / "pybind11-v12-5e9611aa",
-    "fix": SCRATCH / "head4455e3f" / "pybind-pybind11-4455e3f",
-    "v13": SCRATCH / "head14e32ae" / "pybind-pybind11-14e32ae",
-    "fixpatched": SCRATCH
-    / "head4455e3f-patched"
-    / "pybind-pybind11-4455e3f-patched",
-    "fixinstr": SCRATCH / "head4455e3f-instr" / "pybind-pybind11-4455e3f-instr",
-}
+DEFAULT_TREES_ROOT = SCRATCH / "trees"
+SUPPORTED_PLATFORMS = {"darwin", "linux"}
+
+
+def enforce_supported_platform(platform: str) -> None:
+    if platform not in SUPPORTED_PLATFORMS:
+        raise SystemExit(
+            f"unsupported platform {platform!r}; this harness currently supports "
+            "macOS and Linux only"
+        )
+
+
+def tree_paths(root: pathlib.Path) -> dict[str, pathlib.Path]:
+    root = root.resolve()
+    return {
+        "v12": root / "v12",
+        "fix": root / "fix-unbumped",
+        "v13": root / "bumped-v13",
+        "fixpatched": root / "fix-patched",
+        "fixinstr": root / "fix-instrumented",
+    }
+
+
+def tree_provenance(trees: dict[str, pathlib.Path]) -> dict[str, dict[str, object]]:
+    upstream = {
+        "v12": "v12",
+        "fix": "fix-unbumped",
+        "v13": "bumped-v13",
+    }
+    provenance: dict[str, dict[str, object]] = {}
+    for key, path in trees.items():
+        item: dict[str, object] = {
+            "path_at_execution": str(path),
+            "subtree_sha256": subtree_sha256(path),
+        }
+        if key in upstream:
+            spec = PINNED_TREES[upstream[key]]
+            item["source"] = "pybind/pybind11"
+            item["commit"] = spec["commit"]
+        else:
+            item["derived_from"] = PINNED_TREES["fix-unbumped"]["commit"]
+            item["derivation"] = (
+                "harness/make_patched_tree.py"
+                if key == "fixpatched"
+                else "harness/make_instrumented_tree.py"
+            )
+        provenance[key] = item
+    return provenance
 
 # (module name, source, tree)
 MODULES = [
@@ -72,13 +113,51 @@ def interpreter_include(python: str) -> str:
     return out.stdout.strip()
 
 
+def interpreter_gil_enabled(python: str) -> bool | None:
+    out = subprocess.run(
+        [
+            python,
+            "-c",
+            "import sys; f=getattr(sys,'_is_gil_enabled',None); "
+            "print('UNAVAILABLE' if f is None else ('1' if f() else '0'))",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    if out == "1":
+        return True
+    if out == "0":
+        return False
+    if out == "UNAVAILABLE":
+        return None
+    raise SystemExit(f"unexpected GIL-state probe output from {python}: {out!r}")
+
+
+def enforce_gil_expectation(state: bool | None, expected: str) -> None:
+    if expected == "any":
+        return
+    if state is None:
+        raise SystemExit("target interpreter does not expose sys._is_gil_enabled()")
+    want = expected == "enabled"
+    if state != want:
+        raise SystemExit(
+            f"target interpreter GIL state is {'enabled' if state else 'disabled'}, "
+            f"expected {expected}"
+        )
+
+
 def build(
-    python: str, outdir: pathlib.Path, verbose: bool, tuning: list[str]
+    python: str,
+    outdir: pathlib.Path,
+    verbose: bool,
+    tuning: list[str],
+    trees: dict[str, pathlib.Path],
 ) -> None:
     outdir.mkdir(parents=True, exist_ok=True)
     include = interpreter_include(python)
     for name, source, tree in MODULES:
-        tree_root = TREES[tree]
+        tree_root = trees[tree]
         if not (tree_root / "include" / "pybind11" / "pybind11.h").is_file():
             raise SystemExit(f"missing pybind11 tree for {tree}: {tree_root}")
         target = outdir / f"{name}.so"
@@ -189,13 +268,37 @@ def main() -> int:
     # than argued.
     parser.add_argument("--tuning", default="-O1 -g -fvisibility=hidden")
     parser.add_argument("--tag", default="")
+    parser.add_argument(
+        "--expect-gil",
+        choices=("any", "enabled", "disabled"),
+        default="any",
+        help="fail before building if the target interpreter has the wrong GIL state",
+    )
+    parser.add_argument(
+        "--trees-root",
+        type=pathlib.Path,
+        default=DEFAULT_TREES_ROOT,
+        help="root containing v12, fix-unbumped, bumped-v13, and derived trees",
+    )
+    parser.add_argument(
+        "--build-root",
+        type=pathlib.Path,
+        default=HERE,
+        help="directory under which compiled modules are written",
+    )
     args = parser.parse_args()
+    if args.runs < 1:
+        raise SystemExit("--runs must be at least 1")
+    enforce_supported_platform(sys.platform)
 
     tuning = args.tuning.split()
     tag = pathlib.Path(args.python).name + (f"-{args.tag}" if args.tag else "")
-    outdir = HERE / f"build-{tag}"
+    outdir = args.build_root.resolve() / f"build-{tag}"
+    trees = tree_paths(args.trees_root)
+    gil_enabled = interpreter_gil_enabled(args.python)
+    enforce_gil_expectation(gil_enabled, args.expect_gil)
     print(f"building against {args.python}  tuning={args.tuning}", flush=True)
-    build(args.python, outdir, args.verbose, tuning)
+    build(args.python, outdir, args.verbose, tuning, trees)
 
     results = {}
     for mode in ("deref", "addr"):
@@ -252,9 +355,20 @@ def main() -> int:
             capture_output=True,
             text=True,
         ).stdout.strip(),
-        "ext_suffix": sysconfig.get_config_var("EXT_SUFFIX"),
+        "gil_enabled": gil_enabled,
+        "ext_suffix": subprocess.run(
+            [
+                args.python,
+                "-c",
+                "import sysconfig;print(sysconfig.get_config_var('EXT_SUFFIX'))",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip(),
         "runs_per_arm": args.runs,
-        "trees": {k: str(v) for k, v in TREES.items()},
+        "trees": {k: str(v) for k, v in trees.items()},
+        "tree_provenance": tree_provenance(trees),
         "results": results,
     }
     rendered = json.dumps(payload, indent=2, sort_keys=True)
